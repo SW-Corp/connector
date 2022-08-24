@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  connector:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+
+    container_name: swcorp-connector
+    ports:
+      - "7000:7000/tcp"
+    networks: 
+      - swcorp
+
+networks:
+  swcorp: {}
