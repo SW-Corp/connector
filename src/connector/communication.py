@@ -51,9 +51,12 @@ class WriterThread(Thread):
         while self.is_running:
 
             try:
-                self.port.write(self.message_queue.get(block=True))
+                msg = self.message_queue.get(block=True, timeout=5)
+                self.port.write(msg)
             except Exception as e:
-                logger.debug(f"There was some error while sending a message: {e}")
+                # here we should suppress Empty exception and handle all the others
+                # logger.debug(f"There was some error while sending a message: {e}")
+                pass
 
 
 class HardwareCommunicator(Thread):
@@ -84,7 +87,7 @@ class HardwareCommunicator(Thread):
             self.statusHandler.setStatus(Status(500, "No valid COM port was found."))
 
         try:
-            self.port = serial.Serial(sport, self.baudrate)
+            self.port = serial.Serial(sport, self.baudrate, timeout=2)
             self.writerThread.set_serial_port(self.port)
             self.writerThread.start()  # start writer thread
             self.statusHandler.setStatus(
@@ -97,6 +100,12 @@ class HardwareCommunicator(Thread):
     def send(self, message: str):
         self.writerThread.send(message)
 
+    def stop(self):
+        logger.debug("Shutting down hardware communication thread...")
+        self.writerThread.stop()
+        self.writerThread.join()
+        self.is_running = False
+
     def parse_debug_message(self, line):
         if "FAIL" in line:
             self.statusHandler.setStatus(Status(503, line))
@@ -105,9 +114,9 @@ class HardwareCommunicator(Thread):
         pass
 
     def parse_line(self, line):
-        decoded = line.decode("ascii").replace("\r", "").replace("\n", "")
-        if len(decoded) < 1:
+        if len(line) < 1:
             return
+        decoded = line.decode("ascii").replace("\r", "").replace("\n", "")
         if "Water" in decoded:
             # got the hello message. Decide what to do
             return
@@ -123,11 +132,16 @@ class HardwareCommunicator(Thread):
 
         self.open_serial_port()
 
+        line = b''
+
         while self.is_running:
 
             if self.port.is_open:
-                line = self.port.readline()
-                self.parse_line(line)
+                c = self.port.read(1)
+                line += c
+                if len(line)>1 and (line[-2:].decode('ascii') == '\r\n' or line[-1]  == b'\n'):
+                    self.parse_line(line)
+                    line = b''
         # metric = MetricsData(measurement="waterlevel", field="tank1", value=level)
         # try:
         # backend_connector.push_metrics([metric])

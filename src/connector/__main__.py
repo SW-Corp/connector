@@ -1,5 +1,7 @@
 import logging as logger
 import time
+import signal
+import contextlib
 from threading import Thread
 
 import configargparse
@@ -76,6 +78,15 @@ def main():
     communicationThread = HardwareCommunicator(globalStatusHandler)
     communicationThread.start()
 
+    def killall(*args):
+        logger.debug("Initiating graceful shutdown")
+        with contextlib.suppress(Exception):
+            communicationThread.stop()
+            communicationThread.join()
+            exit(0)
+
+    signal.signal(signal.SIGINT, killall)
+
     http_config = HTTPServerConfig(
         args.backend_addr,
         args.backend_port,
@@ -88,3 +99,8 @@ def main():
         port=args.port,
         lifespan="on",
     )
+
+    with contextlib.suppress(Exception):
+        communicationThread.stop()
+        communicationThread.join()
+        exit(0)
