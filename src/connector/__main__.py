@@ -10,7 +10,7 @@ from connector.status_handler import StatusHandler, Status
 from .backend_connector import BackendConfig, BackendConnector, MetricsData
 from .http_server import HTTPServer, HTTPServerConfig
 
-from .communication import start_hardware_comm
+from .communication import HardwareCommunicator
 
 LOGGER_FORMAT = "%(levelname)s:\t%(asctime)s - %(name)s  - %(message)s"
 
@@ -58,6 +58,13 @@ def main():
         required=True,
     )
 
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        required=False
+    )
+
     args, _ = parser.parse_known_args()
 
     backendConfig = BackendConfig(
@@ -71,11 +78,10 @@ def main():
 
     logger.basicConfig(level=logger.DEBUG, format=LOGGER_FORMAT)
 
-    communicationThread = Thread(
-        target=start_hardware_comm, args=(globalStatusHandler,)
-    )
+    communicationThread = HardwareCommunicator(globalStatusHandler, logger)
     communicationThread.start()
 
+"""
     http_config = HTTPServerConfig(
         args.backend_addr,
         args.backend_port,
@@ -88,3 +94,4 @@ def main():
         port=args.port,
         lifespan="on",
     )
+    """
