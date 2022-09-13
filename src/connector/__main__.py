@@ -1,18 +1,18 @@
+import logging as logger
 import time
 from threading import Thread
 
 import configargparse
 import uvicorn
-import logging as logger
 
-from connector.status_handler import StatusHandler, Status
+from connector.status_handler import Status, StatusHandler
 
 from .backend_connector import BackendConfig, BackendConnector, MetricsData
+from .communication import HardwareCommunicator
 from .http_server import HTTPServer, HTTPServerConfig
 
-from .communication import HardwareCommunicator
-
 LOGGER_FORMAT = "%(levelname)s:\t%(asctime)s - %(name)s  - %(message)s"
+
 
 def main():
     parser = configargparse.ArgParser()
@@ -58,12 +58,7 @@ def main():
         required=True,
     )
 
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        required=False
-    )
+    parser.add_argument("-d", "--debug", action="store_true", required=False)
 
     args, _ = parser.parse_known_args()
 
@@ -81,12 +76,11 @@ def main():
     communicationThread = HardwareCommunicator(globalStatusHandler)
     communicationThread.start()
 
-"""
     http_config = HTTPServerConfig(
         args.backend_addr,
         args.backend_port,
     )
-    http_server = HTTPServer(http_config, globalStatusHandler)
+    http_server = HTTPServer(http_config, globalStatusHandler, communicationThread)
     app = http_server.build_app()
     uvicorn.run(
         app,
@@ -94,4 +88,3 @@ def main():
         port=args.port,
         lifespan="on",
     )
-    """

@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from enum import Enum
-from pydantic import BaseModel
+from typing import List
 
 from fastapi import FastAPI
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from typing import List
+from pydantic import BaseModel
+
+from connector.communication import HardwareCommunicator
 
 from .status_handler import StatusHandler
 
@@ -53,6 +55,7 @@ class HTTPServerConfig:
 class HTTPServer:
     config: HTTPServerConfig
     statusHandler: StatusHandler
+    hardwareCommunicator: HardwareCommunicator
 
     def build_app(self) -> FastAPI:  # noqa: C901
         app = FastAPI(title="HTTP keyserver", version="0.1")
@@ -71,6 +74,14 @@ class HTTPServer:
 
         @app.get("/status")
         def reportStatus():
-            return JSONResponse(status_code=self.statusHandler.getCode(), content=self.statusHandler.getContent())
+            return JSONResponse(
+                status_code=self.statusHandler.getCode(),
+                content=self.statusHandler.getContent(),
+            )
+
+        @app.get("/sendtest")
+        def sendtest():
+            self.hardwareCommunicator.send("?")
+            return JSONResponse(status_code=200, content="sent '?' char")
 
         return app

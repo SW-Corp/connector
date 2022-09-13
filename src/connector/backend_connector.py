@@ -1,7 +1,7 @@
+import json
 from dataclasses import dataclass
 from distutils.command.config import config
 from http.client import HTTPConnection
-import json
 from typing import List
 
 from pydantic import BaseModel

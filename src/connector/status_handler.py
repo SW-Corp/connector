@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Status:
     status_code: int
     content: str
+
 
 @dataclass
 class StatusHandler:
