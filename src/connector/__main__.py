@@ -78,7 +78,7 @@ def main():
 
     logger.basicConfig(level=logger.DEBUG, format=LOGGER_FORMAT)
 
-    communicationThread = HardwareCommunicator(globalStatusHandler, logger)
+    communicationThread = HardwareCommunicator(globalStatusHandler)
     communicationThread.start()
 
 """
