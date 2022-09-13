@@ -4,7 +4,10 @@ from pydantic import BaseModel
 
 from fastapi import FastAPI
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from typing import List
+
+from .status_handler import StatusHandler
 
 
 class Operator(str, Enum):
@@ -49,6 +52,7 @@ class HTTPServerConfig:
 @dataclass
 class HTTPServer:
     config: HTTPServerConfig
+    statusHandler: StatusHandler
 
     def build_app(self) -> FastAPI:  # noqa: C901
         app = FastAPI(title="HTTP keyserver", version="0.1")
@@ -64,5 +68,9 @@ class HTTPServer:
         @app.post("/task")
         def receiveTask(task: Task):
             print(f"received task!: {task}")
+
+        @app.get("/status")
+        def reportStatus():
+            return JSONResponse(status_code=self.statusHandler.getCode(), content=self.statusHandler.getContent())
 
         return app

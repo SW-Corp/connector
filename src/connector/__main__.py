@@ -3,22 +3,16 @@ from threading import Thread
 
 import configargparse
 import uvicorn
+import logging as logger
+
+from connector.status_handler import StatusHandler, Status
 
 from .backend_connector import BackendConfig, BackendConnector, MetricsData
 from .http_server import HTTPServer, HTTPServerConfig
 
+from .communication import start_hardware_comm
 
-def dummy_run_hardware_communicator(backend_connector: BackendConnector):
-    level = 0
-    while True:
-        time.sleep(1)
-        metric = MetricsData(measurement="waterlevel", field="tank1", value=level)
-        try:
-            backend_connector.push_metrics([metric])
-        except Exception:
-            pass
-        level += 1
-
+LOGGER_FORMAT = "%(levelname)s:\t%(asctime)s - %(name)s  - %(message)s"
 
 def main():
     parser = configargparse.ArgParser()
@@ -66,24 +60,27 @@ def main():
 
     args, _ = parser.parse_known_args()
 
-    print(args)
-
     backendConfig = BackendConfig(
         args.backend_addr,
         args.backend_port,
         args.workstation_name,
     )
-    backendConnector = BackendConnector(backendConfig)
-    dummyThread = Thread(
-        target=dummy_run_hardware_communicator, args=(backendConnector,)
+    # backendConnector = BackendConnector(backendConfig)
+
+    globalStatusHandler = StatusHandler(Status(200, "Starting up."))
+
+    logger.basicConfig(level=logger.DEBUG, format=LOGGER_FORMAT)
+
+    communicationThread = Thread(
+        target=start_hardware_comm, args=(globalStatusHandler,)
     )
-    dummyThread.start()
+    communicationThread.start()
 
     http_config = HTTPServerConfig(
         args.backend_addr,
         args.backend_port,
     )
-    http_server = HTTPServer(http_config)
+    http_server = HTTPServer(http_config, globalStatusHandler)
     app = http_server.build_app()
     uvicorn.run(
         app,
