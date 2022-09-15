@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -59,17 +59,19 @@ class HTTPServer:
 
     def build_app(self) -> FastAPI:  # noqa: C901
         app = FastAPI(title="HTTP keyserver", version="0.1")
-
-        app.add_middleware(
-            TrustedHostMiddleware, allowed_hosts=[self.config.backend_address]
-        )
+        
+        # idk
+        # app.add_middleware(
+        #     TrustedHostMiddleware, allowed_hosts=[self.config.backend_address]
+        # )
 
         @app.get("/test")
         async def test():
             return "Hello world"
 
         @app.post("/task")
-        def receiveTask(task: Task):
+        def receiveTask(task: Task, request: Request):
+            print(request.client)
             print(f"received task!: {task}")
 
         @app.get("/status")
