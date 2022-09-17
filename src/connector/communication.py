@@ -1,5 +1,7 @@
 import glob
 import logging as logger
+from itertools import chain
+from re import M
 import sys
 import time
 from queue import Queue
@@ -87,23 +89,23 @@ class HardwareCommunicator(Thread):
 
         self.status_report = {
             "containers": {
-                "C1": (False, 0.0),  # (float_switch_up [0 or 1], pressure [hPa])
-                "C2": (False, 0.0),
-                "C3": (False, 0.0),
-                "C4": (False, 0.0),
-                "C5": (False, 0.0),
+                "C1": None,  # (float_switch_up [0 or 1], pressure [hPa])
+                "C2": None,
+                "C3": None,
+                "C4": None,
+                "C5": None,
             },
             "ref_pressure": 0.0,  # only pressure
             "pumps": {
-                "P1": (0.0, 0.0),  # (current [A], voltage [V])
-                "P2": (0.0, 0.0),
-                "P3": (0.0, 0.0),
-                "P4": (0.0, 0.0),
+                "P1": None,  # (current [A], voltage [V])
+                "P2": None,
+                "P3": None,
+                "P4": None,
             },
             "valves": {
-                "V1": (0.0, 0.0),
-                "V2": (0.0, 0.0),
-                "V3": (0.0, 0.0),
+                "V1": None,
+                "V2": None,
+                "V3": None,
             },
         }
 
@@ -147,29 +149,32 @@ class HardwareCommunicator(Thread):
             return
 
         if "REPORT" in line and "FINISHED" in line:
+            self.status_report_lock.acquire()
+
+            metrics = list(chain.from_iterable(chain.from_iterable([list(x.values()) if type(x)==dict else [[x]] for x in self.status_report.values()])))
+            logger.debug(f"Metrics: {metrics}")
             # read and push metrics here
-            pass
+            # metric = MetricsData(measurement="waterlevel", field="tank1", value=level)
+            # try:
+            # backend_connector.push_metrics([metric])
+            # except Exception:
+            # pass   
+            self.status_report_lock.release()
 
     def set_pump_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got pump setting: {id} {first_value} {second_value}")
-        self.status_report["pumps"][id] = (float(first_value), float(second_value))
-        pass
+        self.status_report["pumps"][id[1:]] = (MetricsData(measurement="current", field=id[1:], value=float(first_value)), MetricsData(measurement="voltage", field=id[1:], value=float(second_value)))
 
     def set_valve_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got valve setting: {id} {first_value} {second_value}")
-        self.status_report["valves"][id] = (float(first_value), float(second_value))
-        pass
+        self.status_report["valves"][id[1:]] = (MetricsData(measurement="current", field=id[1:], value=float(first_value)), MetricsData(measurement="voltage", field=id[1:], value=float(second_value)))
 
     def set_container_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got container setting: {id} {first_value} {second_value}")
-        if id == "RF":
-            self.status_report["ref_pressure"] = float(second_value)
+        if id == "$RF":
+            self.status_report["ref_pressure"] = MetricsData(measurement="pressure", field="reference", value=float(second_value))  # float(second_value)
             return
-
-        self.status_report["containers"][id] = (
-            False if int(first_value) == 1 else True,
-            float(second_value),
-        )
+        self.status_report["containers"][id[1:]] = (MetricsData(measurement="float_switch_up", field=id[1:], value=1.0-float(first_value)), MetricsData(measurement="pressure", field=id[1:], value=float(second_value)))
 
     def parse_value_message(self, line: str):
         """
@@ -206,7 +211,7 @@ class HardwareCommunicator(Thread):
             {">": self.parse_debug_message, "$": self.parse_value_message}[decoded[0]](
                 decoded
             )
-        except Exception:
+        except Exception as e:
             logger.debug(f"Unrecognized command: {decoded}")
 
     def run(self):
@@ -228,8 +233,4 @@ class HardwareCommunicator(Thread):
             else:
                 time.sleep(3)  # avoid spinning the loop constantly
 
-        # metric = MetricsData(measurement="waterlevel", field="tank1", value=level)
-        # try:
-        # backend_connector.push_metrics([metric])
-        # except Exception:
-        # pass
+        
