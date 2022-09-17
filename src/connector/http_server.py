@@ -59,7 +59,7 @@ class HTTPServer:
 
     def build_app(self) -> FastAPI:  # noqa: C901
         app = FastAPI(title="HTTP keyserver", version="0.1")
-        
+
         # idk
         # app.add_middleware(
         #     TrustedHostMiddleware, allowed_hosts=[self.config.backend_address]

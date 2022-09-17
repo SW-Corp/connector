@@ -3,7 +3,7 @@ import logging as logger
 import sys
 import time
 from queue import Queue
-from threading import Thread, Lock
+from threading import Lock, Thread
 
 import serial
 from serial.tools import list_ports
@@ -23,6 +23,7 @@ vidpid_pairs = set(
         (0x1A86, 0x7584),  # CH340S
     ]
 )
+
 
 class WriterThread(Thread):
     statusHandler: StatusHandler
@@ -62,8 +63,10 @@ class WriterThread(Thread):
                 # logger.debug(f"There was some error while sending a message: {e}")
                 pass
 
-            if int(time.time())-self.last_ask_timestamp >= self.ask_period:
-                self.send('?\r\n')  # According to the protocol, question mark is requesting a report of the current status of every component
+            if int(time.time()) - self.last_ask_timestamp >= self.ask_period:
+                self.send(
+                    "?\r\n"
+                )  # According to the protocol, question mark is requesting a report of the current status of every component
                 self.last_ask_timestamp = int(time.time())
 
 
@@ -93,15 +96,15 @@ class HardwareCommunicator(Thread):
             "ref_pressure": 0.0,  # only pressure
             "pumps": {
                 "P1": (0.0, 0.0),  # (current [A], voltage [V])
-                "P2": (0.0, 0.0), 
-                "P3": (0.0, 0.0), 
-                "P4": (0.0, 0.0), 
+                "P2": (0.0, 0.0),
+                "P3": (0.0, 0.0),
+                "P4": (0.0, 0.0),
             },
             "valves": {
                 "V1": (0.0, 0.0),
                 "V2": (0.0, 0.0),
                 "V3": (0.0, 0.0),
-            }
+            },
         }
 
     def open_serial_port(self):
@@ -149,21 +152,24 @@ class HardwareCommunicator(Thread):
 
     def set_pump_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got pump setting: {id} {first_value} {second_value}")
-        self.status_report['pumps'][id] = (float(first_value), float(second_value))
+        self.status_report["pumps"][id] = (float(first_value), float(second_value))
         pass
 
     def set_valve_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got valve setting: {id} {first_value} {second_value}")
-        self.status_report['valves'][id] = (float(first_value), float(second_value))
+        self.status_report["valves"][id] = (float(first_value), float(second_value))
         pass
 
     def set_container_details(self, id: str, first_value: str, second_value: str):
         logger.debug(f"Got container setting: {id} {first_value} {second_value}")
         if id == "RF":
-            self.status_report['ref_pressure'] = float(second_value)
+            self.status_report["ref_pressure"] = float(second_value)
             return
-        
-        self.status_report['containers'][id] = (False if int(first_value)==1 else True, float(second_value))
+
+        self.status_report["containers"][id] = (
+            False if int(first_value) == 1 else True,
+            float(second_value),
+        )
 
     def parse_value_message(self, line: str):
         """
@@ -179,7 +185,7 @@ class HardwareCommunicator(Thread):
             "R": self.set_container_details,
             "P": self.set_pump_details,
             "V": self.set_valve_details,
-        }[line[1]](*(line.split(' ')))
+        }[line[1]](*(line.split(" ")))
 
         self.status_report_lock.release()
 
@@ -191,7 +197,9 @@ class HardwareCommunicator(Thread):
             return
         decoded = line.decode("ascii").replace("\r", "").replace("\n", "")
         if "Water" in decoded:
-            logger.debug(f"Got the hello message. We are good to go. Protocol version: {decoded.split(' ')[-1]}")
+            logger.debug(
+                f"Got the hello message. We are good to go. Protocol version: {decoded.split(' ')[-1]}"
+            )
             return
         # logger.debug(f"Get line: {decoded}")
         try:
@@ -205,16 +213,18 @@ class HardwareCommunicator(Thread):
 
         self.open_serial_port()
 
-        line = b''
+        line = b""
 
         while self.is_running:
 
             if self.port.is_open:
                 c = self.port.read(1)
                 line += c
-                if len(line)>1 and (line[-2:].decode('ascii') == '\r\n' or line[-1]  == b'\n'):
+                if len(line) > 1 and (
+                    line[-2:].decode("ascii") == "\r\n" or line[-1] == b"\n"
+                ):
                     self.parse_line(line)
-                    line = b''
+                    line = b""
             else:
                 time.sleep(3)  # avoid spinning the loop constantly
 

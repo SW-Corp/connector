@@ -1,7 +1,7 @@
-import logging as logger
-import time
-import signal
 import contextlib
+import logging as logger
+import signal
+import time
 from threading import Thread
 
 import configargparse
@@ -66,7 +66,7 @@ def main():
         type=int,
         help="Interval between messages requesting the status of the whole station",
         required=False,
-        default=5
+        default=5,
     )
 
     parser.add_argument(
@@ -74,7 +74,7 @@ def main():
         "--baudrate",
         type=int,  # consider using choice type
         required=False,
-        default=115200
+        default=115200,
     )
 
     parser.add_argument("-d", "--debug", action="store_true", required=False)
