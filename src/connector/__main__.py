@@ -60,6 +60,23 @@ def main():
         required=True,
     )
 
+    parser.add_argument(
+        "-i",
+        "--interval",
+        type=int,
+        help="Interval between messages requesting the status of the whole station",
+        required=False,
+        default=5
+    )
+
+    parser.add_argument(
+        "-br",
+        "--baudrate",
+        type=int,  # consider using choice type
+        required=False,
+        default=115200
+    )
+
     parser.add_argument("-d", "--debug", action="store_true", required=False)
 
     args, _ = parser.parse_known_args()
@@ -75,7 +92,7 @@ def main():
 
     logger.basicConfig(level=logger.DEBUG, format=LOGGER_FORMAT)
 
-    communicationThread = HardwareCommunicator(globalStatusHandler)
+    communicationThread = HardwareCommunicator(globalStatusHandler, args)
     communicationThread.start()
 
     def killall(*args):
