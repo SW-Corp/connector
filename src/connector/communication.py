@@ -75,15 +75,17 @@ class WriterThread(Thread):
 class HardwareCommunicator(Thread):
     statusHandler: StatusHandler
     writerThread: WriterThread
+    backendConnector: BackendConnector
     port: serial.Serial = None
     baudrate: int = 115200  # fallback to default value
     is_running: bool = True
     status_report_lock: Lock = Lock()
 
-    def __init__(self, statusHandler, arguments, *args):
+    def __init__(self, backendConnector, statusHandler, arguments, *args):
         super(HardwareCommunicator, self).__init__()
         self.statusHandler = statusHandler
         self.baudrate = arguments.baudrate
+        self.backendConnector = backendConnector
 
         self.writerThread = WriterThread(statusHandler, arguments.interval)
 
@@ -152,13 +154,11 @@ class HardwareCommunicator(Thread):
             self.status_report_lock.acquire()
 
             metrics = list(chain.from_iterable(chain.from_iterable([list(x.values()) if type(x)==dict else [[x]] for x in self.status_report.values()])))
-            logger.debug(f"Metrics: {metrics}")
-            # read and push metrics here
-            # metric = MetricsData(measurement="waterlevel", field="tank1", value=level)
-            # try:
-            # backend_connector.push_metrics([metric])
-            # except Exception:
-            # pass   
+            #logger.debug(f"Metrics: {metrics}")
+            try:
+                self.backendConnector.push_metrics(metrics)
+            except Exception as e:
+                logger.error(f"Error while sending the metrics: {e}")
             self.status_report_lock.release()
 
     def set_pump_details(self, id: str, first_value: str, second_value: str):

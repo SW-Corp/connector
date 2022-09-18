@@ -9,7 +9,7 @@ import uvicorn
 
 from connector.status_handler import Status, StatusHandler
 
-from .backend_connector import BackendConfig, BackendConnector, MetricsData
+from .backend_connector import BackendConfig, BackendConnector, MetricsData, MockBackendConnector
 from .communication import HardwareCommunicator
 from .http_server import HTTPServer, HTTPServerConfig
 
@@ -77,6 +77,13 @@ def main():
         default=115200,
     )
 
+    parser.add_argument(
+        "-nb",
+        "--no-backend",
+        action="store_true",
+        required=False
+    )
+
     parser.add_argument("-d", "--debug", action="store_true", required=False)
 
     args, _ = parser.parse_known_args()
@@ -86,13 +93,14 @@ def main():
         args.backend_port,
         args.workstation_name,
     )
-    # backendConnector = BackendConnector(backendConfig)
+
+    backendConnector = MockBackendConnector(backendConfig) if args.no_backend else BackendConnector(backendConfig)
 
     globalStatusHandler = StatusHandler(Status(200, "Starting up."))
 
     logger.basicConfig(level=logger.DEBUG, format=LOGGER_FORMAT)
 
-    communicationThread = HardwareCommunicator(globalStatusHandler, args)
+    communicationThread = HardwareCommunicator(backendConnector, globalStatusHandler, args)
     communicationThread.start()
 
     def killall(*args):
