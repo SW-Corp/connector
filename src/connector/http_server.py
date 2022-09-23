@@ -4,7 +4,7 @@ from typing import List
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 from connector.communication import HardwareCommunicator
@@ -39,10 +39,9 @@ class Conditions(BaseModel):
 
 
 class Task(BaseModel):
-    action: str
-    target: str
-    value: float
-    conditions: Conditions
+    action: str  # is_open (valve) or is_on (pump)
+    target: str  # Px, Vx
+    value: float # 1.0 or 0.0
 
 
 @dataclass
@@ -65,14 +64,20 @@ class HTTPServer:
         #     TrustedHostMiddleware, allowed_hosts=[self.config.backend_address]
         # )
 
-        @app.get("/test")
-        async def test():
-            return "Hello world"
-
         @app.post("/task")
         def receiveTask(task: Task, request: Request):
-            print(request.client)
-            print(f"received task!: {task}")
+            # validation
+            if task.action not in ["is_open", "is_on"] or task.target[0] not in ["P", "V"]:
+                return Response(status_code=400, content="Invalid request.")
+
+            try:  # try except because int() may fail in some cases
+                if int(task.value) not in [1, 0]:
+                    raise Exception
+            except Exception:
+                return Response(status_code=400, content="Invalid value.")
+
+            self.hardwareCommunicator.processTask(task)
+            return Response(content="Task accepted.")
 
         @app.get("/status")
         def reportStatus():

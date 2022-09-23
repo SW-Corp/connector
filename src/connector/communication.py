@@ -1,7 +1,6 @@
 import glob
 import logging as logger
 from itertools import chain
-from re import M
 import sys
 import time
 from queue import Queue
@@ -11,6 +10,7 @@ import serial
 from serial.tools import list_ports
 
 from connector.status_handler import Status, StatusHandler
+from connector.http_server import Task
 
 from .backend_connector import BackendConnector, MetricsData
 
@@ -135,6 +135,12 @@ class HardwareCommunicator(Thread):
         except:
             logger.error(f"Can't open serial port {sport}")
             self.statusHandler.setStatus(Status(500, f"Can't open serial port {sport}"))
+
+    def processTask(self, task: Task):
+
+        command = f'SET {task.target} {"ON" if task.value==1.0 else "OFF"}'
+
+        self.send(command)
 
     def send(self, message: str):
         self.writerThread.send(message)
