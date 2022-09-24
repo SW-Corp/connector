@@ -9,8 +9,8 @@ from threading import Lock, Thread
 import serial
 from serial.tools import list_ports
 
-from connector.status_handler import Status, StatusHandler
-from connector.http_server import Task
+from .status_handler import Status, StatusHandler
+from .task_models import Task
 
 from .backend_connector import BackendConnector, MetricsData
 

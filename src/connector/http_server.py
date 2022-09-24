@@ -1,47 +1,10 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import List
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
-
-from connector.communication import HardwareCommunicator
-
+from .communication import HardwareCommunicator
 from .status_handler import StatusHandler
-
-
-class Operator(str, Enum):
-    AND = "and"
-    OR = "or"
-
-
-class ConditionType(str, Enum):
-    TIMEOUT = "timeout"
-    EQUAL = "equal"
-    LESS = "less"
-    MORE = "more"
-    MOREEQUAL = "moreequal"
-    LESSEQUAL = "lessequal"
-
-
-class Condition(BaseModel):
-    type: ConditionType
-    measurement: str
-    field: str
-    value: float
-
-
-class Conditions(BaseModel):
-    operator: Operator
-    conditionlist: List[Condition]
-
-
-class Task(BaseModel):
-    action: str  # is_open (valve) or is_on (pump)
-    target: str  # Px, Vx
-    value: float # 1.0 or 0.0
+from .task_models import (Task)
 
 
 @dataclass
