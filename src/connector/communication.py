@@ -137,7 +137,7 @@ class HardwareCommunicator(Thread):
             self.statusHandler.setStatus(Status(500, f"Can't open serial port {sport}"))
 
     def stopAllComponents(self):
-        comps = chain.from_iterable([list(self.status_report.pumps.keys()), list(self.status_report.valves.keys())])
+        comps = chain.from_iterable([list(self.status_report["pumps"].keys()), list(self.status_report["valves"].keys())])
         for c in comps:
             command = f"SET {c} OFF"
             logger.debug(f"Sending command: {command}")
