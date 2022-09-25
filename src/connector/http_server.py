@@ -30,7 +30,7 @@ class HTTPServer:
         @app.post("/task")
         def receiveTask(task: Task, request: Request):
             # validation
-            if task.action not in ["is_open", "is_on"] or task.target[0] not in ["P", "V"]:
+            if task.action not in ["is_open", "is_on", "stop"] or task.target[0] not in ["P", "V", "s"]:
                 return Response(status_code=400, content="Invalid request.")
 
             try:  # try except because int() may fail in some cases
