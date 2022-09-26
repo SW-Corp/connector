@@ -40,25 +40,24 @@ class BackendConnectorBase(ABC):
 class BackendConnector(BackendConnectorBase):
     config: BackendConfig
 
-    def __post_init__(self):
-        self.httpConnection: HTTPConnection = HTTPConnection(
-            self.config.addr, self.config.port
-        )
 
     def push_metrics(self, metrics: List[MetricsData]) -> None:
+        httpConnection: HTTPConnection = HTTPConnection(
+            self.config.addr, self.config.port
+        )
         body = MetricsList(
             workstation_name=self.config.workstation_name, metrics=metrics
         )
         body = body.json()
         try:
-            self.httpConnection.request("POST", "/metrics", body)
+            httpConnection.request("POST", "/metrics", body)
         except Exception as e:
             print(f"Error pushing metrics {e}")
             raise PushMetricsFailed(e)
-        response = self.httpConnection.getresponse()
+        response = httpConnection.getresponse()
         data = response.read()
-        if response.status != 200:
-            print(f"Error pushingn metrics")
+        if response.status > 299:
+            print(f"Error pushing metrics")
             raise PushMetricsFailed(f"code: {response.status}, detail: {data}")
 
 
