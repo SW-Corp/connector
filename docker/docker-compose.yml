@@ -4,7 +4,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile
-
+    restart: always
     container_name: swcorp-connector
     ports:
       - "7000:7000/tcp"
