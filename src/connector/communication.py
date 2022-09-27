@@ -58,7 +58,7 @@ class WriterThread(Thread):
         while self.is_running:
 
             try:
-                msg = self.message_queue.get(block=True, timeout=5)
+                msg = self.message_queue.get(block=True, timeout=self.ask_period)
                 self.port.write(msg)
             except Exception as e:
                 # here we should suppress Empty exception and handle all the others
